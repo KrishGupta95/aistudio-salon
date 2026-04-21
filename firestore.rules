@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.email == 'guptakrish9595official@gmail.com');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'guptakrish9595official@gmail.com' || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'email', 'role']) && 
+             data.userId == request.auth.uid &&
+             data.email is string &&
+             data.role in ['client', 'admin'];
+    }
+
+    function isValidAppointment(data) {
+      return data.keys().hasAll(['clientId', 'serviceId', 'staffId', 'date', 'time', 'status']) &&
+             data.clientId == request.auth.uid &&
+             data.status in ['pending', 'confirmed', 'rejected', 'completed', 'cancelled'] &&
+             data.date is string &&
+             data.time is string;
+    }
+
+    // --- Rules ---
+
+    // Users
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isValidUser(incoming());
+      allow update: if (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'phoneNumber'])) || isAdmin();
+    }
+
+    // Services
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Staff
+    match /staff/{staffId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Appointments
+    match /appointments/{apptId} {
+      allow get: if isSignedIn() && (existing().clientId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow create: if isVerified() && isValidAppointment(incoming()) && exists(/databases/$(database)/documents/services/$(incoming().serviceId));
+      allow update: if isSignedIn() && (
+        (existing().clientId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status']) && incoming().status == 'cancelled') ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Offers
+    match /offers/{offerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reviews
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isVerified() && incoming().clientId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && existing().clientId == request.auth.uid);
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+  }
+}

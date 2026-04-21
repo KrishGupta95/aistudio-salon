@@ -1,0 +1,128 @@
+{
+  "entities": {
+    "Users": {
+      "title": "User",
+      "description": "System users (clients and admins)",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["client", "admin"] },
+        "phoneNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email", "role"]
+    },
+    "Services": {
+      "title": "Service",
+      "description": "Salon services offered",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Hair Care", "Esthetics", "Nail Care", "Massage", "Bridal"] },
+        "price": { "type": "number" },
+        "duration": { "type": "number", "description": "Duration in minutes" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "name", "price", "duration"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Salon stylists and experts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "Link to Users collection if they login" },
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "bio": { "type": "string" },
+        "image": { "type": "string" },
+        "specialties": { "type": "array" }
+      },
+      "required": ["id", "name", "title"]
+    },
+    "Appointments": {
+      "title": "Appointment",
+      "description": "Booking records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "staffId": { "type": "string" },
+        "staffName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "rejected", "completed", "cancelled"] },
+        "price": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientId", "serviceId", "staffId", "date", "time", "status"]
+    },
+    "Offers": {
+      "title": "Offer",
+      "description": "Promotional offers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "discountType": { "type": "string", "enum": ["percentage", "fixed"] },
+        "discountValue": { "type": "number" },
+        "active": { "type": "boolean" }
+      }
+    },
+    "Reviews": {
+      "title": "Review",
+      "description": "Customer reviews",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "staffId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "Users",
+      "description": "Profile data for each user"
+    },
+    "/services/{serviceId}": {
+      "schema": "Services",
+      "description": "Collection of all salon services"
+    },
+    "/staff/{staffId}": {
+      "schema": "Staff",
+      "description": "Profiles of staff members"
+    },
+    "/appointments/{apptId}": {
+      "schema": "Appointments",
+      "description": "Booked appointments"
+    },
+    "/offers/{offerId}": {
+      "schema": "Offers",
+      "description": "Active promotional packages"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Reviews",
+      "description": "Customer feedback and ratings"
+    },
+    "/notifications/{notifId}": {
+      "schema": "SalonNotification",
+      "description": "System and booking notifications for users"
+    }
+  }
+}
